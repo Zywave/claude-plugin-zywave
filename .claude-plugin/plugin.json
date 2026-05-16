@@ -1,0 +1,28 @@
+{
+  "name": "zywave",
+  "version": "1.0.0",
+  "description": "Prospecting, CRM management, and content intelligencde powered by Zywave. Find prospects by broker/industry/geography, manage your book of business, and surface sales-ready content — all from Claude Code. Requires a Zywave account.",
+  "author": {
+    "name": "Zywave",
+    "email": "support@zywave.com",
+    "url": "https://zywave.com"
+  },
+  "homepage": "https://github.com/zywave/claude-plugin-zywave",
+  "repository": "https://github.com/zywave/claude-plugin-zywave",
+  "license": "Proprietary",
+  "keywords": [
+    "insurance",
+    "commercial-insurance",
+    "group-benefits-insurance",
+    "crm",
+    "prospecting",
+    "broker",
+    "benefits",
+    "zywave"
+  ],
+  "skills": [
+    "./skills/insurance-prospecting/",
+    "./skills/insurance-crm/",
+    "./skills/insurance-content/"
+  ]
+}
