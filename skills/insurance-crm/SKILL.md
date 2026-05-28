@@ -6,7 +6,7 @@ description: >
   "my accounts", "my book", or asks to look up, add, or update a specific
   client or contact they already manage. Do NOT use for market prospecting —
   use insurance-prospecting for that.
-allowed-tools: [mcp__zywave__account_search, mcp__zywave__account_get, mcp__zywave__account_create, mcp__zywave__account_update, mcp__zywave__account_delete, mcp__zywave__account_restore, mcp__zywave__account_contact_search, mcp__zywave__account_contact_get, mcp__zywave__account_contact_create, mcp__zywave__account_contact_update, mcp__zywave__account_contact_delete, mcp__zywave__account_contact_restore, mcp__zywave__account_get_supported_lines_of_business, mcp__zywave__household_contacts_get]
+allowed-tools: [mcp__zywave__account_search, mcp__zywave__account_get, mcp__zywave__account_create, mcp__zywave__account_update, mcp__zywave__account_delete, mcp__zywave__account_restore, mcp__zywave__account_contact_search, mcp__zywave__account_contact_get, mcp__zywave__account_contact_create, mcp__zywave__account_contact_update, mcp__zywave__account_contact_delete, mcp__zywave__account_contact_restore]
 ---
 
 # Insurance CRM with Zywave
@@ -27,14 +27,17 @@ allowed-tools: [mcp__zywave__account_search, mcp__zywave__account_get, mcp__zywa
 | Add a contact to an account | `account_contact_create` |
 | Update a contact | `account_contact_update` |
 | Archive/delete a contact | `account_contact_delete` |
-| Get personal lines household contacts | `household_contacts_get` |
-| Get valid LOB values for create/update | `account_get_supported_lines_of_business` |
+| Restore an archived contact | `account_contact_restore` |
 
 ---
 
 ## account_search — OData filter patterns
 
-The `filter` field is required. Use OData `$filter` syntax. Common patterns:
+`linesOfBusiness` is **not filterable** via OData — retrieve results and inspect the field client-side. Do not attempt to filter on it.
+
+`clientSize` filterable values (enum): `"From0To25"`, `"From26To50"`, `"From51To99"`, `"From100To499"`, `"From500To999"`, `"From1000To2499"`, `"From2500To4999"`, `"MoreThan4999"`
+
+Common filter patterns:
 
 ```
 // Active commercial accounts only
@@ -43,8 +46,8 @@ The `filter` field is required. Use OData `$filter` syntax. Common patterns:
 // Search by name (contains)
 "contains(name, 'Acme')"
 
-// Accounts in a specific state
-"state eq 'WI' and isArchived eq false"
+// Filter by client size tier
+"clientSize eq 'From100To499' and isArchived eq false"
 
 // Recently updated (ISO 8601)
 "updatedDateTime gt 2025-01-01T00:00:00Z"
@@ -59,15 +62,19 @@ Pagination: `skip` (zero-based offset) + `top` (max 100). Check `hasMoreResults`
 
 ## account_create — duplicate handling
 
-The API returns a list of potential duplicates before creating. **Always surface these to the user** and ask for confirmation before retrying with `forceCreate: true`. Never set `forceCreate: true` without explicit user acknowledgment.
+The API returns potential duplicates before creating. **Always surface these to the user** and ask for confirmation before retrying with `forceCreate: true`. Never set `forceCreate: true` without explicit user acknowledgment.
 
-Before calling `account_create` with `linesOfBusiness`, call `account_get_supported_lines_of_business` to get valid enum values — do not guess LOB strings.
+### Valid linesOfBusiness values (post-revision, inline in account_update)
+
+`"Benefits Client"`, `"Benefits Prospect"`, `"Commercial Lines Client"`, `"Commercial Lines Prospect"`, `"P&C Client"`, `"P&C Prospect"`, `"Personal Lines Client"`, `"Personal Lines Prospect"`
+
+Note: `account_get_supported_lines_of_business` has been removed from the API. The valid values above are sourced from the `account_update` tool schema — use them directly, no lookup needed.
 
 ---
 
 ## Destructive operations — safety rules
 
-**Archiving** (`account_delete` with `permanent: false`): recoverable. Confirm intent but proceed without extended warnings.
+**Archiving** (`account_delete` with `permanent: false`): recoverable via `account_restore`. Confirm intent but proceed without extended warnings.
 
 **Permanent deletion** (`account_delete` with `permanent: true`): **irreversible**. Always state clearly: _"This permanently deletes the account and cannot be undone."_ Require explicit confirmation ("yes, permanently delete") before proceeding. Never infer confirmation from ambiguous phrasing.
 
@@ -75,7 +82,7 @@ Same rules apply to `account_contact_delete`.
 
 ---
 
-## contact_search — useful filter patterns
+## account_contact_search — useful filter patterns
 
 ```
 // All contacts for a specific account
@@ -97,10 +104,12 @@ Same rules apply to `account_contact_delete`.
 
 Only pass fields that are changing — the API does partial updates. Do not re-send all existing field values. Retrieve the account first with `account_get` if you need to verify current state before updating.
 
+`linesOfBusiness` on update **replaces all existing values** — pass the full intended array, not just the additions. Pass `[]` to clear all LOBs.
+
 ---
 
 ## Tips
 
-- `msid` in account records links to external market data — use it as input to `company_contacts_get` in the prospecting skill to pull external contacts for the same company
-- `linesOfBusiness` is a relationship array (e.g., `["Commercial Client", "Benefits Prospect"]`). Always validate values with `account_get_supported_lines_of_business` before setting them
-- If the user asks about "household" contacts, those are personal lines — use `household_contacts_get` with the account's `msid`
+- `msid` in account records links to external market data — pass it to `discovery_company_contacts_get` in the prospecting skill to pull external contacts for the same company
+- `clientSize` is now a filterable field on `account_search` — use it to segment by business size tier without pulling all records
+- `linesOfBusiness` is inspect-only in search results; to filter by LOB, retrieve accounts and filter client-side

@@ -6,11 +6,11 @@ Connect Claude Code to Zywave's platform. Prospect for new accounts, manage your
 
 ## What this plugin does
 
-**Business Prospecting** — Search Zywave's market intelligence database to find commercial P&C and employee benefits prospects by industry, geography, size, incumbent broker, renewal month, or compliance posture. Pull decision-maker contacts for identified targets. 
+**Prospecting** — Search Zywave's market intelligence database to find commercial P&C and employee benefits prospects by industry, geography, employee count, revenue, incumbent broker, renewal month, or compliance posture. Preview and retrieve decision-maker contacts. Generate AI research briefs on any prospect company.
 
 **CRM** — Read and manage your Zywave book of business. Search, create, update, and archive commercial and personal lines accounts and contacts.
 
-**Content** — Search Zywave's library of insurance articles, guides, checklists, and risk management materials. Retrieve full text or download links for client-facing content and prospect pitch materials.
+**Content** — Search Zywave's library of 700+ insurance articles, guides, checklists, and risk management materials. Retrieve full text or download links for client-facing content and prospect pitch materials.
 
 ---
 
@@ -60,17 +60,19 @@ Tokens are stored in your local Claude Code credential store and are never trans
 ### Prospecting
 | Tool | Description |
 |---|---|
-| `companies_commercial_search` | Find P&C prospects by broker, NAICS, geography, size, renewal month |
-| `companies_benefits_search` | Find employee benefits prospects with same filter set |
-| `company_contacts_get` | Get decision-maker contacts for a prospect company |
+| `discovery_companies_search` | Find P&C or benefits prospects by broker, NAICS, geography, size, renewal month. Required: `lineOfBusiness` (`"Commercial"` or `"Benefits"`) |
+| `discovery_company_contacts_get` | Preview or retrieve decision-maker contacts. Preview is free; full contact enrichment (emails/phones) is billed per company — Claude will confirm before enriching |
+| `discovery_household_contacts_get` | Get personal lines household contacts by MSID |
+| `research_brief_generate` | Generate a full AI research brief for a prospect company (requires MSID + LOB) |
+| `research_brief_get` | Retrieve a previously generated research brief by publicId |
 
 ### CRM
 | Tool | Description |
 |---|---|
-| `account_search` | Search your book of business with OData filters |
+| `account_search` | Search your book of business with OData filters. `clientSize` and `classification` are filterable; `linesOfBusiness` is not |
 | `account_get` | Get full details on a single account |
 | `account_create` | Create a new account (with duplicate detection) |
-| `account_update` | Update account fields |
+| `account_update` | Update account fields (partial update — only changed fields needed) |
 | `account_delete` | Archive (recoverable) or permanently delete an account |
 | `account_restore` | Restore an archived account |
 | `account_contact_search` | Search contacts across your accounts |
@@ -79,8 +81,6 @@ Tokens are stored in your local Claude Code credential store and are never trans
 | `account_contact_update` | Update contact fields |
 | `account_contact_delete` | Archive or permanently delete a contact |
 | `account_contact_restore` | Restore an archived contact |
-| `account_get_supported_lines_of_business` | List valid LOB values for create/update |
-| `household_contacts_get` | Get personal lines household contacts |
 
 ### Content
 | Tool | Description |
@@ -93,7 +93,7 @@ Tokens are stored in your local Claude Code credential store and are never trans
 ### System
 | Tool | Description |
 |---|---|
-| `system_who_am_i` | Returns your authenticated identity and session details |
+| `system_who_am_i` | Returns your authenticated identity and org details |
 
 ---
 
@@ -107,7 +107,10 @@ Find technology companies in Wisconsin with 50–500 employees currently with M3
 Show me manufacturing prospects renewing in Q1 with any OSHA violations
 ```
 ```
-Get the decision-maker contacts at Concurrency Inc in Brookfield WI
+Preview the decision-maker contacts at Concurrency Inc in Brookfield WI
+```
+```
+Generate a research brief for MSID M84000062336619, Commercial
 ```
 
 **CRM:**
@@ -136,10 +139,11 @@ Find prospecting content for a manufacturing company (NAICS 332999) in Wisconsin
 
 ## Known limitations
 
-- **Content search** requires an active Zywave content subscription. If `content_search` returns an error, verify your subscription includes Content on Command.
-- **Download URLs** from `download_content` are presigned and time-limited (~15 minutes). Generate them on demand.
+- **Contact enrichment** via `discovery_company_contacts_get` is billed per company. Claude will always preview contacts and confirm before enriching.
+- **Download URLs** from `download_content` are presigned and time-limited (~15 minutes). Generate on demand.
 - **Permanent deletion** via `account_delete` with `permanent: true` is irreversible. Claude Code will always confirm before executing.
-- `account_get_supported_lines_of_business` must be called before setting `linesOfBusiness` on create/update — valid values are tenant-specific.
+- **`linesOfBusiness`** is not filterable in `account_search` — retrieve accounts and inspect the field client-side.
+- `research_brief_generate` runs synchronously. Do not call `research_brief_get` during active generation.
 
 ---
 

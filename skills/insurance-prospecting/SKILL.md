@@ -7,75 +7,115 @@ description: >
   month, or compliance posture. Retrieve decision-maker contacts for
   identified prospects. Use when the user wants to find new accounts to
   pursue, displace an incumbent broker, or build a target list.
-allowed-tools: [mcp__zywave__companies_commercial_search, mcp__zywave__companies_benefits_search, mcp__zywave__company_contacts_get]
+  Also use for research briefs on a specific prospect company.
+allowed-tools: [mcp__zywave__discovery_companies_search, mcp__zywave__discovery_company_contacts_get, mcp__zywave__discovery_household_contacts_get, mcp__zywave__research_brief_generate, mcp__zywave__research_brief_get]
 ---
 
 # Insurance Prospecting with Zywave
 
-## When to use which tool
+## Tool selection guide
 
 | Goal | Tool |
 |---|---|
-| Find P&C / commercial prospects | `companies_commercial_search` |
-| Find employee benefits prospects | `companies_benefits_search` |
-| Get decision-maker contacts for a prospect | `company_contacts_get` |
+| Find P&C or benefits prospects | `discovery_companies_search` |
+| Preview or get contacts for a prospect | `discovery_company_contacts_get` |
+| Get personal lines household contacts | `discovery_household_contacts_get` |
+| Generate a full AI research brief on a prospect | `research_brief_generate` |
+| Retrieve a previously generated research brief | `research_brief_get` |
 
 Do **not** use these tools to look up accounts the user already manages — use `account_search` from the insurance-crm skill instead.
 
 ---
 
-## companies_commercial_search / companies_benefits_search
+## discovery_companies_search
+
+### Required parameter
+
+`lineOfBusiness` is required and must be exactly `"Commercial"` or `"Benefits"`. There is no combined search — run two calls if both LOBs are needed.
 
 ### Key filters and how to use them
 
-**Geography** — use `states` (array) and/or `city`. Always use state abbreviations (`"WI"`, not `"Wisconsin"`).
+**Geography** — `states` (array of 2-letter codes: `["WI", "IL"]`) and/or `city` (string).
 
-**Industry** — use `naicsCodes` (array of strings). Always pass the full 6-digit NAICS code (e.g., `"541512"` for custom computer programming). You can pass multiple codes to broaden the search.
+**Industry** — `naicsCodes` (array of strings). Pass full 6-digit codes (e.g. `"541512"`); the API filters on the first 2 digits so passing a specific code is fine and preferred.
 
-**Size** — `employeeCountMin` / `employeeCountMax` are integers. `revenueMin` / `revenueMax` are integers in dollars (e.g., `10000000` for $10M).
+**Size** — `employeeCountMin` / `employeeCountMax` (integers). `revenueMin` / `revenueMax` (integers in dollars, e.g. `10000000` for $10M).
 
-**Incumbent broker** — `commercialBrokerName` (or `benefitsBrokerName`) accepts a partial string. Use this to find accounts currently held by a competitor (e.g., `"Marsh"`, `"AON"`, `"M3"`).
+**Incumbent broker** — `commercialBrokerName` or `benefitsBrokerName` (partial string match). Pass competitor names here to find displacement targets: `"Marsh"`, `"AON"`, `"M3"`.
 
-**Renewal timing** — `renewalMonths` is an array of integers (1–12). Pass `[1, 2, 3]` to find accounts renewing in Q1.
+**Renewal timing** — `renewalMonths` (array of integers 1–12). Combine with `states` for highest-conversion prospecting.
 
-**Compliance flags** — `hasDotViolations`, `hasOshaViolations`, `fidelityBondOutOfCompliance` are booleans. Use these to identify high-risk or compliance-motivated prospects.
+**Compliance flags** — `hasDotViolations`, `hasOshaViolations`, `fidelityBondOutOfCompliance` (booleans).
 
-### Output fields to highlight to the user
+**Contact availability filter** — `hasContactEmails: true` restricts results to companies with email data available. Useful before running enriched contact lookups to avoid wasted calls.
 
-- `leadCommercialBroker.name` — incumbent broker to displace
-- `leadCommercialBroker.validated_date` — how current the broker intel is
-- `revenueRange` — size tier for prioritization
-- `fidelityBonds` — compliance status; high `bond_ratio` may indicate over-bonded or non-compliant
-- `msid` — use this as input to `company_contacts_get`
+**Pagination** — use `pageToken` from `NextPageToken` in the response to page through results. `pageSize` max is 25.
+
+### New response fields (post-revision)
+
+- `latitude` / `longitude` — coordinates for proximity follow-up queries
+- `isOutOfBusiness` — filter these out before presenting to the user
+- `qualityScore` — data confidence score; surface when prioritizing targets
+- `hasContactEmails` — preview flag before calling `discovery_company_contacts_get`
 
 ### Typical prospecting workflow
 
-1. Run `companies_commercial_search` with geography + NAICS + size filters
-2. Sort/filter results by `leadCommercialBroker` to identify displacement opportunities
-3. Pick high-value targets and call `company_contacts_get` with the `msid` to get decision-maker contacts
-4. Surface contact names, titles, and phone/email to the user for outreach
+1. Call `discovery_companies_search` with `lineOfBusiness` + geography + NAICS + size filters
+2. Filter out `isOutOfBusiness: true` results
+3. Sort by `revenueRange` and `leadCommercialBroker` to identify best displacement targets
+4. For top targets, call `discovery_company_contacts_get` with `msid` and `enrich: false` first to preview contacts
+5. Confirm with user before calling with `enrich: true` — enrichment is billed per company
 
 ---
 
-## company_contacts_get
+## discovery_company_contacts_get
 
-Requires one of: `msid`, or `(ein + name)`, or `(ein + address)`, or `(name + city + state)`.
+### ⚠️ Cost-gated — always preview before enriching
 
-The fastest path after a prospect search is to pass the `msid` directly from search results. Do not ask the user for it — extract it from the prior search response.
+This tool has two modes controlled by the `enrich` parameter:
+
+**`enrich: false` (default, no charge)** — Returns contact names, job titles, and availability flags (`HasEmail`, `HasDirectPhone`, `HasMobilePhone`). Use this to preview what's available.
+
+**`enrich: true` (billed per company)** — Returns actual email addresses and phone numbers. This incurs a charge billed to the agency. **Always confirm with the user before setting `enrich: true`.** Never enrich silently.
+
+### Lookup methods (in priority order)
+
+1. `msid` — fastest; pass directly from `discovery_companies_search` results
+2. `ein` + `name`
+3. `name` + `city` + `state`
 
 ```
-// Good — use msid from prior search
-company_contacts_get({ msid: "M84000062336619" })
+// Correct — preview first
+discovery_company_contacts_get({ msid: "M84000062336619", enrich: false })
+// Then, after user confirms they want contact details:
+discovery_company_contacts_get({ msid: "M84000062336619", enrich: true })
+```
 
-// Also valid if msid not available
-company_contacts_get({ name: "Concurrency Inc", city: "Brookfield", state: "WI" })
+Use `pageSize` (max 25) and `pageToken` for companies with many contacts.
+
+---
+
+## research_brief_generate / research_brief_get
+
+Generates a comprehensive AI research brief for a specific prospect company. Requires the company `msid` and `lob` (`"Commercial"`, `"Benefits"`, or `"PersonalLines"`).
+
+- Runs **synchronously** — do not call `research_brief_get` while generation is in progress
+- Progress notifications include a `publicId` — store this if the user wants to retrieve the brief later
+- `research_brief_get` is only for retrieving briefs from **prior sessions** using a saved `publicId`
+
+```
+// Generate a new brief
+research_brief_generate({ msid: "M84000062336619", lob: "Commercial" })
+
+// Retrieve a previously generated brief (prior session only)
+research_brief_get({ publicId: "uuid-from-prior-session" })
 ```
 
 ---
 
-## Tips for better results
+## Tips
 
-- Start broad (state + NAICS only), then narrow with additional filters based on result volume
-- `totalCount` in the response tells you how many records match — if >50, add filters before showing results
-- For renewal-based prospecting, combine `renewalMonths` with `states` — this is the highest-conversion filter combination
-- When the user says "who does [broker] own in [market]", pass that broker name to `commercialBrokerName` — this is a displacement play
+- Always check `isOutOfBusiness` before presenting results — filter these silently
+- `qualityScore` of 75 is the baseline; higher scores indicate more complete data records
+- For the displacement play: filter by `commercialBrokerName` with a competitor, then sort by `revenueRange.max` descending to find the highest-value accounts to pursue
+- `hasContactEmails: true` in the search filters to companies where enrichment will actually return email data — use this to improve enrichment yield before spending credits
