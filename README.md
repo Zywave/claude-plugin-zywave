@@ -101,17 +101,12 @@ Tokens are stored in your local Claude Code credential store and are never trans
 
 **Prospecting:**
 ```
-Find technology companies in Wisconsin with 50–500 employees currently with M3 Insurance
+Find technology companies in Wisconsin with 50–500 employees
 ```
 ```
 Show me manufacturing prospects renewing in Q1 with any OSHA violations
 ```
-```
-Preview the decision-maker contacts at Concurrency Inc in Brookfield WI
-```
-```
-Generate a research brief for MSID M84000062336619, Commercial
-```
+
 
 **CRM:**
 ```
@@ -119,9 +114,7 @@ Show me all my active commercial accounts
 ```
 ```
 Create a new account for Acme Corp, commercial, NAICS 541512, based in Milwaukee WI
-```
-```
-Archive the account for KK Personal Lines 73
+
 ```
 
 **Content:**
@@ -141,7 +134,6 @@ Find prospecting content for a manufacturing company (NAICS 332999) in Wisconsin
 
 - **Contact enrichment** via `discovery_company_contacts_get` is billed per company. Claude will always preview contacts and confirm before enriching.
 - **Download URLs** from `download_content` are presigned and time-limited (~15 minutes). Generate on demand.
-- **Permanent deletion** via `account_delete` with `permanent: true` is irreversible. Claude Code will always confirm before executing.
 - **`linesOfBusiness`** is not filterable in `account_search` — retrieve accounts and inspect the field client-side.
 - `research_brief_generate` runs synchronously. Do not call `research_brief_get` during active generation.
 
