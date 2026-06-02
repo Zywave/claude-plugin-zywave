@@ -6,7 +6,7 @@ Connect Claude Code to Zywave's platform. Prospect for new accounts, manage your
 
 ## What this plugin does
 
-**Prospecting** — Search Zywave's market intelligence database to find commercial P&C and employee benefits prospects by industry, geography, employee count, revenue, incumbent broker, renewal month, or compliance posture. Preview and retrieve decision-maker contacts. Generate AI research briefs on any prospect company.
+**Prospecting** — Search Zywave's market intelligence database to find commercial P&C, employee benefits, and personal prospects by industry, geography, employee count, revenue, incumbent broker, renewal month, or compliance posture. Preview and retrieve decision-maker contacts. Generate AI research briefs on any prospect company.
 
 **CRM** — Read and manage your Zywave book of business. Search, create, update, and archive commercial and personal lines accounts and contacts.
 
