@@ -1,7 +1,7 @@
 {
   "name": "zywave",
   "version": "1.0.0",
-  "description": "Prospecting, CRM management, and content intelligencde powered by Zywave. Find prospects by broker/industry/geography, manage your book of business, and surface sales-ready content — all from Claude Code. Requires a Zywave account.",
+  "description": "Prospecting, CRM management, and content intelligence powered by Zywave. Find prospects by broker/industry/geography, manage your book of business, and surface sales-ready content — all from Claude Code. Requires a Zywave account.",
   "author": {
     "name": "Zywave",
     "email": "support@zywave.com",
