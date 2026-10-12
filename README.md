@@ -2,6 +2,8 @@
 
 Connect Claude Code to Zywave's platform. Prospect for new accounts, manage your book of business, and surface client-ready content — all through natural language in your terminal.
 
+> **Note:** This repository is a read-only mirror maintained for distribution.
+
 ---
 
 ## What this plugin does
@@ -156,7 +158,6 @@ All API calls go directly to `ai.zywave.com` over HTTPS. Content downloads resol
 ## Support
 
 - **Zywave support:** support@zywave.com
-- **Plugin issues:** https://github.com/zywave/claude-plugin-zywave/issues
 - **Zywave developer docs:** https://booster.zywave.dev/
 
 ---
